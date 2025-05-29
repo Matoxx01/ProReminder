@@ -1,0 +1,54 @@
+/* Menu */
+
+.imageDiv {
+    display: flex;
+    justify-content: center;    
+}
+
+.menuImage {
+    height: 150px;
+    width: 150px;
+}
+
+/* Pagina principal */
+
+.titleh1 {
+    font-size: 35px;
+    font-style: bold;
+    font-family: 'Alda Slab One', 'Segoe UI';
+    animation: slide-bottom 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+
+.page {
+  display: flex;
+}
+
+.upPart {
+  display: flex;
+  justify-content: end;
+}
+
+.datetimecenter {
+  display: flex;
+  justify-content: center;
+}
+
+/* Fuentes */
+
+@font-face {
+    font-family: 'Alda Slab One';
+    src: url(./../../resources/fonts/alfaslab.ttf);
+}
+
+/* Animaciones */
+
+@keyframes slide-bottom {
+  0% {
+    -webkit-transform: translateY(-200px);
+            transform: translateY(-200px);
+  }
+  100% {
+    -webkit-transform: translateY(0px);
+            transform: translateY(0px);
+  }
+}
