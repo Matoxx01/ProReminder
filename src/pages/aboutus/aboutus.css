@@ -1,0 +1,70 @@
+/* Menu */
+
+ion-menu {
+  --background: var(--ion-item-background, var(--ion-background-color));
+}
+
+/* Pagina principal */
+
+ion-content {
+    --background: var(--ion-item-background, var(--ion-background-color));
+}
+
+.titleh1 {
+    font-size: 35px;
+    font-style: bold;
+    font-family: 'Alda Slab One', 'Segoe UI';
+    animation: slide-bottom 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+
+.imageEmp {
+    height: 150px;
+    width: 150px;
+    border-radius: 99px;
+    margin-top: 24px;
+    animation: slide-bottom 0.7s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+
+.parrafo {
+    margin: 7px 20px;
+    font-family: "Kanit", sans-serif;
+    font-weight: 400;
+    font-style: italic;
+    animation: slide-upper 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+
+/* Fuentes */
+
+@font-face {
+    font-family: 'Alda Slab One';
+    src: url(./../../resources/fonts/alfaslab.ttf);
+}
+
+@font-face {
+    font-family: 'Kanit';
+    src: url(./../../resources/fonts/kanit.ttf);
+}
+
+/* Animaciones */
+
+@keyframes slide-bottom {
+  0% {
+    -webkit-transform: translateY(-200px);
+            transform: translateY(-200px);
+  }
+  100% {
+    -webkit-transform: translateY(0px);
+            transform: translateY(0px);
+  }
+}
+
+@keyframes slide-upper {
+  0% {
+    -webkit-transform: translateY(200px);
+            transform: translateY(200px);
+  }
+  100% {
+    -webkit-transform: translateY(0px);
+            transform: translateY(0px);
+  }
+}

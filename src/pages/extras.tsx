@@ -20,11 +20,17 @@ import {
   IonTextarea,
   IonDatetime,
   IonReorder,
-  IonReorderGroup
+  IonReorderGroup,
+  IonAlert,
+  IonToast,
+  IonRefresher,
+  IonRefresherContent
 } from '@ionic/react';
 import { add, funnel, chevronBack } from 'ionicons/icons';
 import { Storage } from '@ionic/storage';
+import { useHistory } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { menuController } from '@ionic/core';
 import './extras.css';
 
 interface ExtraReminder {
@@ -40,14 +46,30 @@ interface ExtraFilters {
   reorderable: boolean; 
 }
 
-const STORAGE_EXTRAREMINDERS = 'extrareminders';
+// Interfaz para los reminders normales (faltaba esta definición)
+interface Reminder {
+  title: string;
+  desc?: string;
+  datetime: string;
+  emoji: string;
+  alarm?: string;
+  id: string;
+}
+
 const STORAGE_EXTRAFILTERS = 'extrafilters';
+const STORAGE_EXTRAREMINDERS = 'extrareminders';
+const STORAGE_REMINDERS = 'reminders';
 
 const Extras: React.FC = () => {
+  const history = useHistory();
   const [storage, setStorage] = useState<Storage>();
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showExportAlert, setShowExportAlert] = useState(false);
+  const [showImportAlert, setShowImportAlert] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [editIndex, setEditIndex] = useState<number>();
 
   // Form state for Add/Edit
@@ -60,6 +82,49 @@ const Extras: React.FC = () => {
   // Data
   const [extraReminders, setExtraReminders] = useState<ExtraReminder[]>([]);
   const [extraFilters, setExtraFilters] = useState<ExtraFilters>({ reorderable: false });
+  
+  // Función para ir a About Us
+  const handleAboutUs = async () => {
+    await menuController.close();
+    history.push('/aboutus/aboutus');
+  };
+
+  // Función para mostrar Export Alert
+  const handleShowExportAlert = async () => {
+    await menuController.close();
+    setShowExportAlert(true);
+  };
+
+  // Función para mostrar Import Alert  
+  const handleShowImportAlert = async () => {
+    await menuController.close();
+    setShowImportAlert(true);
+  };
+  
+  // Refresh
+  const handleRefresh = async (event: CustomEvent) => {
+    try {
+      // Recargar extra reminders desde storage
+      const savedRem = await storage?.get(STORAGE_EXTRAREMINDERS);
+      if (savedRem) {
+        let list = savedRem as ExtraReminder[];
+        list = list.map((r, idx) => ({
+          ...r,
+          id: r.id || `legacy_${idx}_${Date.now()}`
+        }));
+        setExtraReminders(list);
+      }
+      
+      // Recargar filtros
+      const savedFilt = await storage?.get(STORAGE_EXTRAFILTERS);
+      if (savedFilt) setExtraFilters(savedFilt as ExtraFilters);
+      
+    } catch (error) {
+      console.error('Error al recargar:', error);
+    } finally {
+      event.detail.complete();
+    }
+  };
 
   const generateId = (): string => {
     return `reminder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -113,6 +178,89 @@ const Extras: React.FC = () => {
         schedule: { at } 
       }] 
     });
+  };
+
+  // Función para exportar datos
+  const handleExport = async () => {
+    try {
+      const remindersData = await storage?.get(STORAGE_REMINDERS) || [];
+      const extraRemindersData = await storage?.get(STORAGE_EXTRAREMINDERS) || [];
+      
+      // Crear datos para exportar
+      const remindersBlob = new Blob([JSON.stringify(remindersData, null, 2)], {
+        type: 'application/json'
+      });
+      const extraRemindersBlob = new Blob([JSON.stringify(extraRemindersData, null, 2)], {
+        type: 'application/json'
+      });
+
+      // Crear enlaces de descarga
+      const remindersUrl = URL.createObjectURL(remindersBlob);
+      const extraRemindersUrl = URL.createObjectURL(extraRemindersBlob);
+
+      // Descargar reminders
+      const remindersLink = document.createElement('a');
+      remindersLink.href = remindersUrl;
+      remindersLink.download = 'reminders.json';
+      document.body.appendChild(remindersLink);
+      remindersLink.click();
+      document.body.removeChild(remindersLink);
+
+      // Descargar extra reminders
+      const extraRemindersLink = document.createElement('a');
+      extraRemindersLink.href = extraRemindersUrl;
+      extraRemindersLink.download = 'extrareminders.json';
+      document.body.appendChild(extraRemindersLink);
+      extraRemindersLink.click();
+      document.body.removeChild(extraRemindersLink);
+
+      // Limpiar URLs
+      URL.revokeObjectURL(remindersUrl);
+      URL.revokeObjectURL(extraRemindersUrl);
+
+      setToastMessage('Datos exportados exitosamente');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      setToastMessage('Error al exportar los datos');
+      setShowToast(true);
+    }
+  };
+
+  // Función para importar datos
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = '.json';
+    
+    input.onchange = async (event: any) => {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+
+      try {
+        for (const file of files) {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          
+          if (file.name.includes('reminders') && !file.name.includes('extra')) {
+            await storage?.set(STORAGE_REMINDERS, data);
+          } else if (file.name.includes('extrareminders')) {
+            await storage?.set(STORAGE_EXTRAREMINDERS, data);
+            setExtraReminders(data); // Actualizar el estado local
+          }
+        }
+        
+        setToastMessage('Datos importados exitosamente. Recarga la página para ver los cambios.');
+        setShowToast(true);
+      } catch (error) {
+        console.error('Error al importar:', error);
+        setToastMessage('Error al importar los datos. Verifica que los archivos sean válidos.');
+        setShowToast(true);
+      }
+    };
+    
+    input.click();
   };
 
   const handleSave = async () => {
@@ -187,19 +335,19 @@ const Extras: React.FC = () => {
           <IonImg className='menuImage' src='/images/menu_logo.png'/>
         </div>
         <IonContent className="ion-padding">
-          <IonItem>
+          <IonItem button onClick={handleAboutUs}>
             <IonLabel>Sobre Nosotros</IonLabel>
           </IonItem>
-          <IonItem>
+          <IonItem button onClick={handleShowExportAlert}>
             <IonLabel>Exportar</IonLabel>
           </IonItem>
-          <IonItem>
+          <IonItem button onClick={handleShowImportAlert}>
             <IonLabel>Importar</IonLabel>
           </IonItem>
         </IonContent>
       </IonMenu>
 
-      <IonPage>
+      <IonPage id="main-content">
         <IonHeader>
           <IonToolbar>
             <IonButtons slot="start">
@@ -208,9 +356,12 @@ const Extras: React.FC = () => {
           </IonToolbar>
         </IonHeader>
 
-        <IonContent id="main-content" className="ion-padding" style={{
+        <IonContent className="ion-padding" style={{
           '--background': 'var(--ion-item-background, var(--ion-background-color))'
         }}>
+          <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+            <IonRefresherContent pullingText="Desliza para recargar" refreshingText="Recargando..."/>
+          </IonRefresher>
           <h1 className='titleh1' style={{textAlign:'center'}}>Extra Reminders</h1>
           
           <div style={{display:'flex',justifyContent:'space-between',margin:'16px 0'}}>
@@ -258,6 +409,51 @@ const Extras: React.FC = () => {
               ))
             )}
           </IonList>
+
+          {/* Export Alert */}
+          <IonAlert
+            isOpen={showExportAlert}
+            onDidDismiss={() => setShowExportAlert(false)}
+            header="Exportar Datos"
+            message="¿Deseas exportar todos los recordatorios? Se descargarán dos archivos JSON."
+            buttons={[
+              {
+                text: 'Cancelar',
+                role: 'cancel'
+              },
+              {
+                text: 'Exportar',
+                handler: handleExport
+              }
+            ]}
+          />
+
+          {/* Import Alert */}
+          <IonAlert
+            isOpen={showImportAlert}
+            onDidDismiss={() => setShowImportAlert(false)}
+            header="Importar Datos"
+            message="¿Deseas importar recordatorios? Selecciona los archivos JSON correspondientes."
+            buttons={[
+              {
+                text: 'Cancelar',
+                role: 'cancel'
+              },
+              {
+                text: 'Seleccionar Archivos',
+                handler: handleImport
+              }
+            ]}
+          />
+
+          {/* Toast */}
+          <IonToast
+            isOpen={showToast}
+            onDidDismiss={() => setShowToast(false)}
+            message={toastMessage}
+            duration={3000}
+            position="bottom"
+          />
 
           {/* Filter Modal */}
           <IonModal isOpen={showFilterModal} onDidDismiss={() => setShowFilterModal(false)}>

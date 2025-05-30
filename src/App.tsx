@@ -13,6 +13,7 @@ import { IonReactRouter } from '@ionic/react-router';
 import { home, addCircle } from 'ionicons/icons';
 import Home from './pages/home';
 import Extras from './pages/extras';
+import Aboutus from './pages/aboutus/aboutus';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -50,6 +51,9 @@ const App: React.FC = () => (
           </Route>
           <Route exact path="/">
             <Redirect to="/home" />
+          </Route>
+          <Route exact path="/aboutus/aboutus">
+            <Aboutus />
           </Route>
         </IonRouterOutlet>
         <IonTabBar slot="bottom">
