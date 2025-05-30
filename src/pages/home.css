@@ -2,7 +2,11 @@
 
 .imageDiv {
     display: flex;
-    justify-content: center;    
+    justify-content: center;
+}
+
+ion-menu {
+  --background: var(--ion-item-background, var(--ion-background-color));
 }
 
 .menuImage {

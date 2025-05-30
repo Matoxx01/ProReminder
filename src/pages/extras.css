@@ -1,0 +1,3 @@
+.ion-padding {
+    --background: var(--ion-item-background, var(--ion-background-color));
+}
